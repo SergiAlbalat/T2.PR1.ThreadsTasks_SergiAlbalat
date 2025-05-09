@@ -1,4 +1,6 @@
-﻿using System;
+﻿using CsvHelper;
+using System;
+using System.Globalization;
 
 namespace T2.PR1.ThreadsTasks_SergiAlbalat
 {
@@ -6,6 +8,7 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
     {
         public static DateTime Start = DateTime.Now;
         public static Random random = new Random();
+        public static List<Record> Records = new List<Record>();
         public static readonly object Consola = new object();
         public static readonly object Pal1 = new object();
         public static readonly object Pal2 = new object();
@@ -36,11 +39,19 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
                 comensal4.Interrupt();
                 comensal5.Interrupt();
             }
+            comensal1.Join();
+            comensal2.Join();
+            comensal3.Join();
+            comensal4.Join();
+            comensal5.Join();
+            RegistrarResultados();
         }
 
-        public static void Comensal(int num)
+        private static void Comensal(int num)
         {
             DateTime inicioHambre = DateTime.Now;
+            TimeSpan maxFam = new TimeSpan(0, 0, 0);
+            int vecesComido = 0;
             while ((DateTime.Now - Start).TotalSeconds < 30)
             {
                 Escribir(num, ConsoleColor.Blue, "Pensando");
@@ -50,19 +61,19 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
                     switch (num)
                     {
                         case 1:
-                            Comer(num, Pal1, Pal2, ref inicioHambre);
+                            Comer(num, Pal1, Pal2, ref inicioHambre, ref maxFam, ref vecesComido);
                             break;
                         case 2:
-                            Comer(num, Pal2, Pal3, ref inicioHambre);
+                            Comer(num, Pal2, Pal3, ref inicioHambre, ref maxFam, ref vecesComido);
                             break;
                         case 3:
-                            Comer(num, Pal3, Pal4, ref inicioHambre);
+                            Comer(num, Pal3, Pal4, ref inicioHambre, ref maxFam, ref vecesComido);
                             break;
                         case 4:
-                            Comer(num, Pal4, Pal5, ref inicioHambre);
+                            Comer(num, Pal4, Pal5, ref inicioHambre, ref maxFam, ref vecesComido);
                             break;
                         case 5:
-                            Comer(num, Pal5, Pal1, ref inicioHambre);
+                            Comer(num, Pal5, Pal1, ref inicioHambre, ref maxFam, ref vecesComido);
                             break;
                     }
                 }
@@ -72,9 +83,15 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
                 }
                 
             }
+            Records.Add(new Record
+            {
+                Id = num,
+                MaxFam = maxFam,
+                VecesComido = vecesComido
+            });
         }
 
-        public static ConsoleColor GetColor(int num)
+        private static ConsoleColor GetColor(int num)
         {
             switch (num)
             {
@@ -93,7 +110,7 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
             }
         }
 
-        public static void Comer(int num, object pal1, object pal2, ref DateTime inicioHambre)
+        private static void Comer(int num, object pal1, object pal2, ref DateTime inicioHambre, ref TimeSpan maxFam, ref int vecesComido)
         {
             Escribir(num, ConsoleColor.Yellow, "Cogiendo primer palillo");
             lock (pal1)
@@ -101,11 +118,16 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
                 Escribir(num, ConsoleColor.DarkYellow, "Cogiendo segundo palillo");
                 lock (pal2)
                 {
+                    if((DateTime.Now - inicioHambre) > maxFam)
+                    {
+                        maxFam = DateTime.Now - inicioHambre;
+                    }
                     if ((DateTime.Now - inicioHambre).TotalSeconds > 15)
                     {
                         throw new Exception();
                     }
                     Escribir(num, ConsoleColor.Green, "Comiendo");
+                    vecesComido++;
                     Thread.Sleep(random.Next(500, 1001));
                     inicioHambre = DateTime.Now;
                     Escribir(num, ConsoleColor.DarkBlue, "Deja el primer palillo");
@@ -114,7 +136,7 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
             }
         }
 
-        public static void Escribir(int num, ConsoleColor color, string mensaje)
+        private static void Escribir(int num, ConsoleColor color, string mensaje)
         {
             lock (Consola)
             {
@@ -123,6 +145,14 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
                 Console.WriteLine($"[{DateTime.Now:HH:mm:ss}]{num}: {mensaje}");
                 Console.ResetColor();
             }
+        }
+
+        private static void RegistrarResultados()
+        {
+            string path = "../../../ResultadosComensales.txt";
+            using StreamWriter sw = new StreamWriter(path);
+            using var csvWriter = new CsvWriter(sw, CultureInfo.InvariantCulture);
+            csvWriter.WriteRecords(Records);
         }
     }
 }
