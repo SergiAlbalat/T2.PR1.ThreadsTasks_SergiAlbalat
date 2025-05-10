@@ -149,7 +149,7 @@ namespace T2.PR1.ThreadsTasks_SergiAlbalat
 
         private static void RegistrarResultados()
         {
-            string path = "../../../ResultadosComensales.txt";
+            string path = "../../../ResultadosComensales.csv";
             using StreamWriter sw = new StreamWriter(path);
             using var csvWriter = new CsvWriter(sw, CultureInfo.InvariantCulture);
             csvWriter.WriteRecords(Records);
